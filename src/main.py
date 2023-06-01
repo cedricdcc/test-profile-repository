@@ -8,6 +8,7 @@ import sys
 import yaml
 from utils.singleton.location import Location
 from utils.singleton.logger import get_logger
+from utils.build_registry import Registry
 
 logger = get_logger()
 # set the location of the src folder
@@ -18,4 +19,7 @@ if not os.path.isdir("data"):
     logger.error("Data folder not found. Please make sure it exists in src/data")
     sys.exit(1)
 
-build_gh_pages(config, os.path.join(Location().get_location(), "data"))
+logger.info("Start of gh-pages build")
+registry = Registry()
+registry.build_registry(data_path=os.path.join(Location().get_location(), "data"))
+registry.get_report()

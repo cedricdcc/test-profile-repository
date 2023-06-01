@@ -2,3 +2,4 @@
 /src/data/*
 /src/build/*
 /venv/*
+/src/logs.log

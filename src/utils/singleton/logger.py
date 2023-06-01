@@ -9,10 +9,15 @@ class SingletonLogger(logging.Logger):
             super().__init__(name=name, level=level)
             console_handler = logging.StreamHandler()
             console_handler.setLevel(level)
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s  - %(message)s')
             console_handler.setFormatter(formatter)
             self.addHandler(console_handler)
-
+            #add file to log to
+            file_handler = logging.FileHandler('logs.log')
+            file_handler.setLevel(level)
+            file_handler.setFormatter(formatter)
+            self.addHandler(file_handler)
+            
 def get_logger():
     # Get the name of the calling module
     frame = inspect.stack()[1]
