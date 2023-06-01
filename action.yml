@@ -1,0 +1,11 @@
+#allinfo about the action
+name: 'make gh-pages branch'
+description: 'This action creates a gh-pages branch for a repository and pushes the rocrates to it'
+author: 'Decruw Cedric'
+branding:
+  icon: 'git-branch'
+  color: 'blue'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'

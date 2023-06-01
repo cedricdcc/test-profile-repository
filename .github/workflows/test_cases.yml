@@ -1,0 +1,20 @@
+# this workflow will be run on push and pull request events
+# it will run specific tests based on all the cases in the tests folder
+name: Test Cases
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test_cases:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run test cases
+      run: |
+        for file in tests/*.py; do
+          python $file
+        done
+```

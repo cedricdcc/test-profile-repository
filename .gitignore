@@ -1,0 +1,4 @@
+#ignore ./src/data folder
+/src/data/*
+/src/build/*
+/venv/*
