@@ -1,0 +1,38 @@
+{
+    "@context": "https://w3id.org/ro/crate/1.2/context",
+    "@graph": [
+        {
+            "@id": "./ro-crate-metadata.json",
+            "@type":  ["CreativeWork", "Profile"],
+            "about": {
+                "@id": "./"
+            },
+            "conformsTo": {
+                "@id": "https://w3id.org/ro/crate/1.1"
+            },
+            "author": "Decruw Cedric",
+            "description": "test repo for test profile",
+            "keywords": ["test", "profile", "correct"],
+            "license": {
+                "@id": "https://creativecommons.org/licenses/by/4.0/"
+            },
+            "name": "test profile",
+            "version": "1.0.0"
+        },
+        {
+            "@id": "./",
+            "@type": ["Dataset", "Profile"],
+            "label": "./",
+            "hasPart": [
+                {
+                    "@id": "./README.md"
+                }
+            ]
+        },
+        {
+            "@id": "./README.md",
+            "@type": "File",
+            "label": "./README.md"
+        }
+    ]
+    }
