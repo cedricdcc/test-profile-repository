@@ -6,7 +6,7 @@ import csv
 import json
 from utils.singleton.location import Location
 from utils.singleton.logger import get_logger
-from utils.uri_checks import check_uri, check_if_json_return, get_url
+from utils.uri_checks import check_uri, check_if_json_return, get_url, check_uri_content
 logger = get_logger()
 
 #registry class that will hold the registry
@@ -14,6 +14,7 @@ class Registry():
     def __init__(self, registry=None):
         self.registry = registry
         self.error_rows = []
+        self.warnings_rows = []
         self.profile_rows = []
         self.profile_registry_array = []
     
@@ -24,6 +25,7 @@ class Registry():
         logger.info("Generating report")
         report = {}
         report["error_rows"] = self.error_rows
+        report["warnings_rows"] = self.warnings_rows
         report["profile_rows"] = self.profile_rows
         report["profile_registry_array"] = self.profile_registry_array
         logger.info(
@@ -72,7 +74,6 @@ class Registry():
         :return: the array of dictionaries
         '''
         logger.info("Making registry array")
-        
         registry_array = []
         try:
             for csv_file in self.csv_files:
@@ -86,7 +87,6 @@ class Registry():
 
         return registry_array
     
-
     def registry_array_check(self):
         '''
         this function will make the registry
@@ -98,17 +98,42 @@ class Registry():
         for entry in self.registry_array:
             logger.info(f"Checking entry {entry}")
             #check if the URI is valid
+            #check if the URI is already in the registry
+            warning = False
+            for row  in self.profile_rows:
+                if entry["URI"] == row["URI"]:
+                    logger.warning(f"URI {entry['URI']} already in registry")
+                    self.warnings_rows.append(entry)
+                    warning = True
+                    break
+            
+            if warning:
+                continue
+                
             if not check_uri(entry["URI"]):
                 self.error_rows.append(entry)
                 continue
-            #check if the URI returns a json
-            if not check_if_json_return(entry["URI"]):
+            
+            var_check_uri_content = check_uri_content(entry["URI"])
+            # check if check_uri_content is True or False
+            if var_check_uri_content != False and var_check_uri_content != True:
+
+                #check if var_check_uri_content starts with http
+                if var_check_uri_content.startswith("http"):
+                    entry["URI"] = var_check_uri_content
+                else: 
+                    if var_check_uri_content.startswith("./"):
+                        entry["URI"] = entry["URI"] + var_check_uri_content[1:]
+                    else:
+                        logger.error(f"URI {entry['URI']} is not valid")
+                        self.error_rows.append(entry)
+                self.profile_rows.append(entry)
+                continue
+            
+            if not var_check_uri_content:
                 self.error_rows.append(entry)
                 continue
-            #check if the URI is already in the registry
-            if entry["URI"] in self.profile_registry_array:
-                logger.warning(f"URI {entry['URI']} already in registry")
-                continue
+            
             #check if the URI return a valid json-ld
             self.profile_rows.append(entry)
     

@@ -1,3 +1,5 @@
 URI,contact
-testURI,contact
-testURI,contact
+https://cedricdcc.github.io/test-profile-repository/test/data/basic-profile.json,Marc Portier
+https://cedricdcc.github.io/test-profile-repository/test/data/test-profile-missing-metadata.json,Someone
+https://github.com/cedricdcc/test-profile-repository/tree/main/test/data, Wokey
+https://cedricdcc.github.io/test_single_rocrate/latest, deepsearch
