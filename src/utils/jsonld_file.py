@@ -53,8 +53,8 @@ def get_profile_prop(json_data):
     try:
         for entry in json_data["@graph"]:
             if type(entry["@type"]) == list:
-                for type in entry["@type"]:
-                    if type == "Profile":
+                for typen in entry["@type"]:
+                    if typen == "Profile":
                         return entry["@id"]
             else:
                 if entry["@type"] == "Profile":

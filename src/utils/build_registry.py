@@ -7,6 +7,7 @@ import json
 from utils.singleton.location import Location
 from utils.singleton.logger import get_logger
 from utils.uri_checks import check_uri, check_if_json_return, get_url, check_uri_content
+from utils.jsonld_file import has_conformsTo_prop, get_cornformTo_uris, is_profile, get_profile_prop
 logger = get_logger()
 
 #registry class that will hold the registry
@@ -15,7 +16,8 @@ class Registry():
         self.registry = registry
         self.error_rows = []
         self.warnings_rows = []
-        self.profile_rows = []
+        self.to_check_rows = []
+        self.checked_rows = []
         self.profile_registry_array = []
     
     def __repr__(self) -> str:
@@ -26,7 +28,8 @@ class Registry():
         report = {}
         report["error_rows"] = self.error_rows
         report["warnings_rows"] = self.warnings_rows
-        report["profile_rows"] = self.profile_rows
+        report["to_check_rows"] = self.to_check_rows
+        report["checked_rows"] = self.checked_rows
         report["profile_registry_array"] = self.profile_registry_array
         logger.info(
             json.dumps(
@@ -52,6 +55,8 @@ class Registry():
         #function that will go over all the csv files and return an array of dictionaries with each entry in the array being {"source": "relative path to csv file", "URI": "URI of a given profile", "contact":"contact" }
         self.registry_array = self.make_registry_array()
         self.registry_array_check()
+        self.get_type_to_check_rows()
+        self.get_conformsTo_uris()
 
     def detect_csv_files(self, data_path):
         '''
@@ -100,10 +105,10 @@ class Registry():
             #check if the URI is valid
             #check if the URI is already in the registry
             warning = False
-            for row  in self.profile_rows:
+            for row  in self.to_check_rows:
                 if entry["URI"] == row["URI"]:
                     logger.warning(f"URI {entry['URI']} already in registry")
-                    self.warnings_rows.append(entry)
+                    self.warning_row(entry)
                     warning = True
                     break
             
@@ -111,7 +116,7 @@ class Registry():
                 continue
                 
             if not check_uri(entry["URI"]):
-                self.error_rows.append(entry)
+                self.failed_row(entry)
                 continue
             
             var_check_uri_content = check_uri_content(entry["URI"])
@@ -126,17 +131,102 @@ class Registry():
                         entry["URI"] = entry["URI"] + var_check_uri_content[1:]
                     else:
                         logger.error(f"URI {entry['URI']} is not valid")
-                        self.error_rows.append(entry)
-                self.profile_rows.append(entry)
+                        self.failed_row(entry)
+                self.to_check_rows.append(entry)
                 continue
             
             if not var_check_uri_content:
-                self.error_rows.append(entry)
+                self.failed_row(entry)
                 continue
             
             #check if the URI return a valid json-ld
-            self.profile_rows.append(entry)
+            self.to_check_rows.append(entry)
+
+    def get_type_to_check_rows(self):
+        logger.debug(f"{len(self.to_check_rows)} rows to check")
+        for row in self.to_check_rows:
+            logger.info(f"Getting type of {row}")
+            row["type"] = self.get_type_json_file(row["URI"])
+            if row["type"] == "profile":
+                row["profile_prop"] = get_profile_prop(get_url(row["URI"]).json())
+                self.approved_row(row)
+            elif row["type"] == "crate":
+                row["conformsTo_uris"] = get_cornformTo_uris(get_url(row["URI"]).json())
+            else:
+                self.failed_row(row)
+        
+        self.remove_checked_rows()
     
+    def get_uri_from_prop(self, prop):
+        '''
+        this function will get a uri from a prop
+        :param prop: the prop to get the uri from
+        :return: the uri
+        '''
+        logger.info("Getting id from prop")
+        try:
+            #check if given prop is object
+            if type(prop) == dict:
+                #check if the prop contains an @id
+                if "@id" in prop:
+
+                    #check if the @id is a valid uri or starts with ./
+                    if check_uri(prop["@id"]) or prop["@id"].startswith("./"):
+                        return prop["@id"]
+                else:
+                    logger.warning("No id found in prop")
+                    return None
+            else:
+                logger.warning("Prop is not an object")
+                return None
+        except Exception as e:
+            logger.error(f"Error while getting id from prop: {e}")
+            return None
+
+    def get_conformsTo_uris(self):
+        for row in self.to_check_rows:
+            try:
+                if row["type"] == "crate":
+                    #check if the conformsTo prop is an array
+                    if type(row["conformsTo_uris"]) == list:
+                        profile_found = False
+                        for conformrow in row["conformsTo_uris"]:
+                            uri_from_prop = self.get_uri_from_prop(conformrow)
+                            logger.debug(f"URI from prop: {uri_from_prop}")
+                            #check if the conformsTo prop contains a profile
+                            if check_uri(uri_from_prop):
+                                try:
+                                    if is_profile(get_url(uri_from_prop).json()):
+                                        #check if row already has a profile prop, if it does then append the new profile prop to the existing one
+                                        if "profile_prop" in row:
+                                            row["profile_prop"] = row["profile_prop"] + "," + get_profile_prop(get_url(uri_from_prop).json())
+                                        else:
+                                            row["profile_prop"] = get_profile_prop(get_url(uri_from_prop).json())
+                                        profile_found = True
+                                except Exception as e:
+                                    logger.debug(f"URI check for {uri_from_prop} failed")
+                                    logger.error(f"Error while getting conformsTo uris: {e}")
+                                    continue
+                        if profile_found:
+                            self.approved_row(row)
+                        else:
+                            self.warning_row(row)
+                    else:
+                        #check if the conformsTo prop contains a profile
+                        uri_from_prop = self.get_uri_from_prop(row["conformsTo_uris"])
+                        logger.debug(f"URI from prop: {uri_from_prop}")
+                        if check_uri(uri_from_prop):
+                            if is_profile(get_url(uri_from_prop).json()):
+                                row["profile_prop"] = get_profile_prop(get_url(uri_from_prop).json())
+                                self.approved_row(row)
+                            else:
+                                self.warning_row(row)
+                        else:
+                            self.warning_row(row)
+                self.remove_checked_rows()
+            except Exception as e:
+                logger.error(f"Error while getting conformsTo uris: {e}")
+
     def get_type_json_file(self,uri):
         '''
         this function will get the json file from a uri and look into the jsonfile
@@ -145,8 +235,47 @@ class Registry():
         :return: the type of the json file
         '''
         logger.info("Getting type of json file")
-        #get the json file
-        json_data = get_url(uri)
-        #check if the json file is valid
-        pass
-         
+        try:
+            #get the json file
+            json_data = get_url(uri).json()
+            #checj in the json data if it is a profile
+            if is_profile(json_data):
+                return "profile"
+            
+            #check if the json file has conformsTo prop
+            if has_conformsTo_prop(json_data):
+                #check if the conformsTo prop is an array
+                return "crate"
+            
+            #if none of the above are true then it is json that can't be parsed by this script yet
+            logger.warning(f"Json file {uri} is not a profile or a crate")
+            return "error"
+        except Exception as e:
+            logger.error(f"Error while getting type of json file: {e}")
+            return "error"
+    
+    def approved_row(self, row):
+        logger.debug(f"Approving row {row}")
+        self.checked_rows.append(row)
+        self.profile_registry_array.append(row)
+    
+    def warning_row(self, row):
+        logger.debug(f"Warning row {row}")
+        self.checked_rows.append(row)
+        self.warnings_rows.append(row)
+        
+    def failed_row(self, row):
+        logger.debug(f"Failed row {row}")
+        self.checked_rows.append(row)
+        self.error_rows.append(row)
+    
+    def remove_checked_rows(self):
+        logger.info("Removing checked rows")
+        for row in self.checked_rows:
+            try:
+                self.to_check_rows.remove(row)
+            except Exception as e:
+                logger.debug(f"Error while removing row: {row})")
+                logger.error(f"Error while removing checked rows: {e}")
+                continue
+        
