@@ -51,7 +51,7 @@ jobs:
         name: Get latest tag of repo 
       - uses: oprypin/find-latest-tag@v1
         with:
-          repository: vliz-be-opsci/${{ github.event.repository.name }}  # The repository to scan. Change the part before the / to name or organisation where repo resides
+          repository: cedricdcc/${{ github.event.repository.name }}  # The repository to scan. Change the part before the / to name or organisation where repo resides
           releases-only: false  # Set to true if you want to know the tag linked to the latest release
         id: vliz-be-opsci  # The step ID to refer to later.
 
