@@ -27,7 +27,15 @@
                 {
                     "@id": "./README.md"
                 }
-            ]
+            ],
+            "author": "Kendrick Lemarenostrum",
+            "description": "test repo for test profile",
+            "keywords": ["test", "profile", "correct"],
+            "license": {
+                "@id": "https://creativecommons.org/licenses/by/4.0/"
+            },
+            "name": "test profile A",
+            "version": "1.0.0"
         },
         {
             "@id": "./README.md",
