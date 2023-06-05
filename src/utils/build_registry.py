@@ -8,6 +8,7 @@ from utils.singleton.location import Location
 from utils.singleton.logger import get_logger
 from utils.uri_checks import check_uri, check_if_json_return, get_url, check_uri_content
 from utils.jsonld_file import has_conformsTo_prop, get_cornformTo_uris, is_profile, get_profile_prop, get_metadata_profile
+from utils.html_build_util import make_html_file, setup_build_folder
 logger = get_logger()
 
 #registry class that will hold the registry
@@ -58,6 +59,8 @@ class Registry():
         self.get_type_to_check_rows()
         self.get_conformsTo_uris()
         self.get_metadata_profiles()
+        setup_build_folder()
+        self.make_html_file_registry()
 
     def detect_csv_files(self, data_path):
         '''
@@ -290,6 +293,24 @@ class Registry():
                 logger.error(f"Error while getting metadata profiles: {e}")
                 logger.exception(e)
                 continue
+    
+    def make_html_file_registry(self):
+        logger.info("Making html file")
+        try:
+            kwargs = {
+                "title": "Test Profile registry",
+                "description": "This is a test profile registry",
+                "theme": "main",
+                "datasets": self.profile_registry_array
+            }
+            html_file = make_html_file("index_registry.html",**kwargs)
+            #write the html file to the build folder
+            with open(os.path.join(Location().get_location(), "build", "index.html"), "w") as f:
+                f.write(html_file)
+        except Exception as e:
+            logger.error(f"Error while making html file: {e}")
+            logger.exception(e)
+            return False
         
             
         
