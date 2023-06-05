@@ -36,6 +36,7 @@
                     <td>{{ dataset.metadata.version }}</td>
                     <td>{{ dataset.metadata.description }}</td>
                     {% if dataset.metadata.keywords is iterable %}
+                    {% if dataset.metadata.keywords is not none %}
                     <td>
                         <ul>
                             {% for keyword in dataset.metadata.keywords %}
@@ -43,11 +44,13 @@
                             {% endfor %}
                         </ul>
                     </td>
+                    {% endif %}
                     {% else %}
                     <td>{{ dataset.metadata.keywords }}</td>
                     {% endif %}
                     <td>{{ dataset.metadata.license }}</td>
                     {% if dataset.metadata.authors is iterable %}
+                    {% if dataset.metadata.author is not none %}
                     <td>
                         <ul>
                             {% for authore in dataset.metadata.author %}
@@ -55,6 +58,7 @@
                             {% endfor %}
                         </ul>
                     </td>
+                    {% endif %}
                     {% else %}
                     <td>{{ dataset.metadata.author }}</td>
                     {% endif %}
