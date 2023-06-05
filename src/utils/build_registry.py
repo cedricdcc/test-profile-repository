@@ -7,7 +7,7 @@ import json
 from utils.singleton.location import Location
 from utils.singleton.logger import get_logger
 from utils.uri_checks import check_uri, check_if_json_return, get_url, check_uri_content
-from utils.jsonld_file import has_conformsTo_prop, get_cornformTo_uris, is_profile, get_profile_prop
+from utils.jsonld_file import has_conformsTo_prop, get_cornformTo_uris, is_profile, get_profile_prop, get_metadata_profile
 logger = get_logger()
 
 #registry class that will hold the registry
@@ -57,6 +57,7 @@ class Registry():
         self.registry_array_check()
         self.get_type_to_check_rows()
         self.get_conformsTo_uris()
+        self.get_metadata_profiles()
 
     def detect_csv_files(self, data_path):
         '''
@@ -278,4 +279,17 @@ class Registry():
                 logger.debug(f"Error while removing row: {row})")
                 logger.error(f"Error while removing checked rows: {e}")
                 continue
+    
+    def get_metadata_profiles(self):
+        logger.info("Getting metadata profiles")
+        for row in self.profile_registry_array:
+            try:
+                metadata = get_metadata_profile(get_url(row["URI"]).json())
+                row["metadata"] = metadata
+            except Exception as e:
+                logger.error(f"Error while getting metadata profiles: {e}")
+                logger.exception(e)
+                continue
+        
+            
         

@@ -64,3 +64,52 @@ def get_profile_prop(json_data):
     except Exception as e:
         logger.error(f"Error while getting type of json file: {e}")
         return None
+    
+def get_metadata_profile(json_data):
+    '''
+    This function will return the metadata of a json file. 
+    This includes: 
+        - "author": list of strings or string 
+        - "description": string
+        - "keywords": list of strings or string
+        - "license": dict with @id key with value string
+        - "name": string
+        - "version": string 
+    These properties should be located in the @id: ./
+    The return is a dict with the above keys and values. If a key is not found, the value will be None
+    :param json_data: json data
+    :return: dict with metadata
+    '''
+    try:
+        for entry in json_data["@graph"]:
+            if entry["@id"] == "./":
+                metadata = {}
+                if "author" in entry:
+                    metadata["author"] = entry["author"]
+                else:
+                    metadata["author"] = None
+                if "description" in entry:
+                    metadata["description"] = entry["description"]
+                else:
+                    metadata["description"] = None
+                if "keywords" in entry:
+                    metadata["keywords"] = entry["keywords"]
+                else:
+                    metadata["keywords"] = None
+                if "license" in entry:
+                    metadata["license"] = entry["license"]["@id"]
+                else:
+                    metadata["license"] = None
+                if "name" in entry:
+                    metadata["name"] = entry["name"]
+                else:
+                    metadata["name"] = None
+                if "version" in entry:
+                    metadata["version"] = entry["version"]
+                else:
+                    metadata["version"] = None
+                return metadata
+    except Exception as e:
+        logger.error(f"Error while getting metadata of json file: {e}")
+        logger.exception(e)
+        return None
