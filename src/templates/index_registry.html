@@ -17,10 +17,8 @@
             <br/>
             <table>
                 <tr>
-                    <th>URI</th>
-                    <th>Source csv file</th>
+                    <th>profile name</th>
                     <th>Contact</th>
-                    <th>name</th>
                     <th>version</th>
                     <th>description</th>
                     <th>keywords</th>
@@ -28,14 +26,16 @@
                     <th>authors</th>
                 </tr>
                 {% for dataset in datasets %}
+                {% if dataset.metadata.name is none or dataset.metadata.version is none or dataset.metadata.description is none or dataset.metadata.keywords is none or dataset.metadata.license is none or dataset.metadata.author is none %}
+                <tr class="error_row">
+                {% else %}
                 <tr>
-                    <td><a href="{{ dataset.URI }}">{{ dataset.URI }}</a></td>
-                    <td><a href="{{ dataset.source }}">{{ dataset.source }}</a></td>
+                {% endif %}
+                    <td><a href="{{ dataset.URI }}">{{ dataset.metadata.name }}</a></td>
                     <td>{{ dataset.contact }}</td>
-                    <td>{{ dataset.metadata.name }}</td>
                     <td>{{ dataset.metadata.version }}</td>
                     <td>{{ dataset.metadata.description }}</td>
-                    {% if dataset.metadata.keywords is iterable %}
+                    {% if dataset.metadata.keywords is iterable and (dataset.metadata.keywords is not string and dataset.metadata.keywords is not mapping) %}
                     {% if dataset.metadata.keywords is not none %}
                     <td>
                         <ul>
@@ -48,8 +48,16 @@
                     {% else %}
                     <td>{{ dataset.metadata.keywords }}</td>
                     {% endif %}
+                    {% if dataset.metadata.license is not none %}
+                    {% if 'http' in dataset.metadata.license %}
+                    <td><a href="{{ dataset.metadata.license }}">{{ dataset.metadata.license }}</a></td>
+                    {% else %}
                     <td>{{ dataset.metadata.license }}</td>
-                    {% if dataset.metadata.authors is iterable %}
+                    {% endif %}
+                    {% else %}
+                    <td>None</td>
+                    {% endif %}
+                    {% if dataset.metadata.author is iterable and (dataset.metadata.author is not string and dataset.metadata.author is not mapping) %}
                     {% if dataset.metadata.author is not none %}
                     <td>
                         <ul>
@@ -68,6 +76,6 @@
         </div>
     </body>
     <!-- 
-        -.. --- / -.-- --- ..- / -.- -. --- .-- / - .... . / -. .- -- . / --- ..-. / - .... . / .- -.-. - .-. . ... ... / - .... .- - / .--. .-.. .- -.-- . -.. / - .... . / .-- .. ..-. . / --- ..-. / ... - . .--. .... . -. / .... .- .-- -.- .. -. --. ..--..                                                     
+    -. . ...- . .-. / --. --- -. -. .- / --. .. ...- . / -.-- --- ..- / ..- .--. / -. . ...- . .-. / --. --- -. -. .- / .-.. . - / -.-- --- ..- / -.. --- .-- -. / -. . ...- . .-. / --. --- -. -. .- / .-. ..- -. / .- .-. --- ..- -. -.. / .- -. -.. / -.. . ... . .-. - / -.-- --- ..- / -. . ...- . .-. / --. --- -. -. .- / -- .- -.- . / -.-- --- ..- / -.-. .-. -.-- / -. . ...- . .-. / --. --- -. -. .- / ... .- -.-- / --. --- --- -.. -... -.-- . / -. . ...- . .-. / --. --- -. -. .- / - . .-.. .-.. / .- / .-.. .. . / .- -. -.. / .... ..- .-. - / -.-- --- ..-                                                    
     -->
 </html>

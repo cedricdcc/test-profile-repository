@@ -7,7 +7,7 @@ from utils.singleton.logger import get_logger
 logger = get_logger()
 
 def has_conformsTo_prop(json_data):
-    try:        
+    try:
         for entry in json_data["@graph"]:
             #check if entry contains conformsTo, if it does check if it is an array and if it is check if it contains Profile or Dataset
             if "conformsTo" in entry:
