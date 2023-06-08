@@ -65,7 +65,7 @@ class Registry():
         self.kgttl = self.knowledge_graph_registry.toTurtle()
         logger.debug(self.kgttl)
         #write the knowledge graph to a ttl file
-        with open(os.path.join(Location().get_location(), "build", "repository.ttl"), "w") as f:
+        with open(os.path.join(Location().get_location(), "build", "registry.ttl"), "w") as f:
             f.write(self.kgttl)
         self.make_html_file_registry()
 
