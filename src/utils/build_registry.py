@@ -62,12 +62,12 @@ class Registry():
         self.get_conformsTo_uris()
         self.get_metadata_profiles()
         setup_build_folder()
-        self.make_html_file_registry()
         self.kgttl = self.knowledge_graph_registry.toTurtle()
         logger.debug(self.kgttl)
         #write the knowledge graph to a ttl file
-        with open(os.path.join(Location().get_location(), "build", "knowledge_graph.ttl"), "w") as f:
+        with open(os.path.join(Location().get_location(), "build", "repository.ttl"), "w") as f:
             f.write(self.kgttl)
+        self.make_html_file_registry()
 
     def detect_csv_files(self, data_path):
         '''

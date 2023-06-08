@@ -49,10 +49,21 @@ class KnowledgeGraphRegistry():
         #add the jsonld data to the knowledge graph
         try:
             #first add the uri as rdf type schema:CreativeWork , schema:LisItem
-            self.knowledgeGraph.add((URIRef(profile_uri), RDF.type, URIRef("http://schema.org/CreativeWork")))
+            #self.knowledgeGraph.add((URIRef(profile_uri), RDF.type, URIRef("http://schema.org/CreativeWork")))
+            self.knowledgeGraph.parse(format="json-ld", location=URIRef(profile_uri))
+            '''
+            #find a triple in the kg that starts with file:/// with /src in it 
+            #and replace it with the profile_uri + everything after /src
+            #this is done because the jsonld file contains the path to the file on the local machine
+            #and we want to replace it with the uri of the profile
+            for s, p, o in self.knowledgeGraph.triples((None, None, None)):
+                if "file:///" in s and "/src" in s:
+                    self.knowledgeGraph.remove((s, p, o))
+                    self.knowledgeGraph.add((URIRef(profile_uri + s.split("/src")[1]), p, o))
+            '''
             self.knowledgeGraph.add((URIRef(profile_uri), RDF.type, URIRef("http://schema.org/ListItem")))
             self.knowledgeGraph.add((URIRef(profile_uri), URIRef("http://schema.org/item"), URIRef(profile_uri)))
-            self.knowledgeGraph.parse(data=profile_data, format="json-ld")   
+            
         except Exception as e:
             logger.error(msg="Error parsing profile data: " + str(e))
             logger.exception(e)
