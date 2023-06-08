@@ -9,6 +9,7 @@ from utils.singleton.logger import get_logger
 from utils.uri_checks import check_uri, check_if_json_return, get_url, check_uri_content
 from utils.jsonld_file import has_conformsTo_prop, get_cornformTo_uris, is_profile, get_profile_prop, get_metadata_profile
 from utils.html_build_util import make_html_file, setup_build_folder
+from utils.rdflib import KnowledgeGraphRegistry
 logger = get_logger()
 
 #registry class that will hold the registry
@@ -20,6 +21,7 @@ class Registry():
         self.to_check_rows = []
         self.checked_rows = []
         self.profile_registry_array = []
+        self.knowledge_graph_registry = KnowledgeGraphRegistry(knowledgeGraph=None)
     
     def __repr__(self) -> str:
         return f"Registry(registry={self.registry})"
@@ -61,6 +63,11 @@ class Registry():
         self.get_metadata_profiles()
         setup_build_folder()
         self.make_html_file_registry()
+        self.kgttl = self.knowledge_graph_registry.toTurtle()
+        logger.debug(self.kgttl)
+        #write the knowledge graph to a ttl file
+        with open(os.path.join(Location().get_location(), "build", "knowledge_graph.ttl"), "w") as f:
+            f.write(self.kgttl)
 
     def detect_csv_files(self, data_path):
         '''
@@ -287,6 +294,7 @@ class Registry():
         logger.info("Getting metadata profiles")
         for row in self.profile_registry_array:
             try:
+                self.knowledge_graph_registry.addProfile(row["URI"], get_url(row["URI"]).json())
                 metadata = get_metadata_profile(get_url(row["URI"]).json())
                 row["metadata"] = metadata
             except Exception as e:
