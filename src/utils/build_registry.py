@@ -73,6 +73,7 @@ class Registry():
         #write the knowledge graph to a ttl file
         with open(os.path.join(Location().get_location(), "build", "registry.ttl"), "w") as f:
             f.write(self.kgttl)
+        self.registry_json_format = self.knowledge_graph_registry.extractMetadata()
         self.make_html_file_registry()
 
     def detect_csv_files(self, data_path):
@@ -313,7 +314,7 @@ class Registry():
         logger.info("Getting metadata profiles")
         for row in self.profile_registry_array:
             try:
-                self.knowledge_graph_registry.addProfile(row["URI"], get_url(row["URI"]).json())
+                self.knowledge_graph_registry.addProfile(row["URI"])
                 metadata = get_metadata_profile(get_url(row["URI"]).json())
                 row["metadata"] = metadata
             except Exception as e:
@@ -328,7 +329,7 @@ class Registry():
                 "title": "Test Profile registry",
                 "description": "This is a test profile registry",
                 "theme": "main",
-                "datasets": self.profile_registry_array
+                "datasets": self.registry_json_format
             }
             html_file = make_html_file("index_registry.html",**kwargs)
             #write the html file to the build folder

@@ -15,8 +15,12 @@ class KnowledgeGraphRegistry():
     
     def __init__(self, knowledgeGraph):
         logger.info(msg="Initializing Knowledge Graph Registry")
+        
+        
+        
         if knowledgeGraph is None:
             self.knowledgeGraph = Graph()
+            #bind the schema namespace to the prefix schema
             #add triple that states that the current uri ./ is a schema:CreativeWork
             self.knowledgeGraph.add((URIRef("./"), RDF.type, URIRef("http://schema.org/CreativeWork")))
             #add triple that is a blank node named "listregistry" that is part of the registry hasPart
@@ -34,6 +38,7 @@ class KnowledgeGraphRegistry():
         self.knowledgeGraph.parse(data=json, format="json-ld")
     
     def toTurtle(self):
+        self.knowledgeGraph.bind("schema", "http://schema.org/", override=True, replace=True)
         return self.knowledgeGraph.serialize(format="turtle")
     
     def toJson(self):
@@ -42,7 +47,7 @@ class KnowledgeGraphRegistry():
     def toRdf(self):
         return self.knowledgeGraph.serialize(format="xml")
     
-    def addProfile(self, profile_uri, profile_data):
+    def addProfile(self, profile_uri):
         logger.info(msg="Adding profile to the registry {0}".format(profile_uri))
         #add the profile_uri to the blank node listregistry as a listItem
         self.knowledgeGraph.add((BNode("listregistry"), URIRef("http://schema.org/itemListElement"), URIRef(profile_uri)))
@@ -51,16 +56,6 @@ class KnowledgeGraphRegistry():
             #first add the uri as rdf type schema:CreativeWork , schema:LisItem
             #self.knowledgeGraph.add((URIRef(profile_uri), RDF.type, URIRef("http://schema.org/CreativeWork")))
             self.knowledgeGraph.parse(format="json-ld", location=URIRef(profile_uri))
-            '''
-            #find a triple in the kg that starts with file:/// with /src in it 
-            #and replace it with the profile_uri + everything after /src
-            #this is done because the jsonld file contains the path to the file on the local machine
-            #and we want to replace it with the uri of the profile
-            for s, p, o in self.knowledgeGraph.triples((None, None, None)):
-                if "file:///" in s and "/src" in s:
-                    self.knowledgeGraph.remove((s, p, o))
-                    self.knowledgeGraph.add((URIRef(profile_uri + s.split("/src")[1]), p, o))
-            '''
             self.knowledgeGraph.add((URIRef(profile_uri), RDF.type, URIRef("http://schema.org/ListItem")))
             self.knowledgeGraph.add((URIRef(profile_uri), URIRef("http://schema.org/item"), URIRef(profile_uri)))
             
@@ -68,3 +63,91 @@ class KnowledgeGraphRegistry():
             logger.error(msg="Error parsing profile data: " + str(e))
             logger.exception(e)
             return False
+        
+        #function to extract metadata information from all the profiles in the registry
+        #this function will return a dictionary with the following structure
+        #{
+        #   "profile_uri": {
+        #       "name": "profile name",
+        #       "description": "profile description",
+        #       "author": "profile author",
+        #       "dateCreated": "profile date created",
+        #       "dateModified": "profile date modified",
+        #       "version": "profile version",
+        #       "license": "profile license",
+        #       "keywords": "profile keywords",
+        #       "url": "profile url"
+        #   }
+        #}
+    def extractMetadata(self):
+        '''
+        this function will extract metadata from all the profiles in the registry
+        '''
+        logger.info(msg="Extracting metadata from all profiles in the registry")
+        #create a dictionary to store the metadata
+        metadata = {}
+        #get all the profiles in the registry
+        profiles = self.knowledgeGraph.objects(BNode("listregistry"), URIRef("http://schema.org/itemListElement"))
+        #iterate over all the profiles
+        for profile in profiles:
+            #get the metadata from the profile
+            metadata[profile] = self.getMetadata(profile)
+        #log json metadata in pprint format
+        logger.debug(msg="Metadata extracted from all profiles in the registry: \n{0}".format(json.dumps(metadata, indent=4)))
+        return metadata
+    
+    def getMetadata(self, profile_uri):
+        '''
+        this function will extract metadata from a profile
+        '''
+        logger.info(msg="Extracting metadata from profile {0}".format(profile_uri))
+        #create a dictionary to store the metadata
+        metadata = {}
+        #get the name of the profile
+        metadata["name"] = self.knowledgeGraph.value(profile_uri, URIRef("http://schema.org/name"))
+        #get the description of the profile
+        metadata["description"] = self.knowledgeGraph.value(profile_uri, URIRef("http://schema.org/description"))
+        #get the authors of the profile, this can be a list of authors or a single author
+        all_authors = self.knowledgeGraph.query("""SELECT ?authors WHERE {
+            <%s> <http://schema.org/author> ?authors .
+        }""" % profile_uri)
+        #if there is more than one author
+        if len(all_authors) > 1:
+            #create a list to store the authors
+            authorse = []
+            #iterate over all the authors
+            for row in all_authors:
+                #add the author to the list
+                authorse.append(row.authors)
+            #add the list of authors to the metadata
+            metadata["author"] = authorse
+        else:
+            metadata["author"] = self.knowledgeGraph.value(profile_uri, URIRef("http://schema.org/author"))
+        #get the dateCreated of the profile
+        metadata["dateCreated"] = self.knowledgeGraph.value(profile_uri, URIRef("http://schema.org/dateCreated"))
+        #get the dateModified of the profile
+        metadata["dateModified"] = self.knowledgeGraph.value(profile_uri, URIRef("http://schema.org/dateModified"))
+        #get the version of the profile
+        metadata["version"] = self.knowledgeGraph.value(profile_uri, URIRef("http://schema.org/version"))
+        #get the license of the profile
+        metadata["license"] = self.knowledgeGraph.value(profile_uri, URIRef("http://schema.org/license"))
+        #get the keywords of the profile this can be a list of keywords or a single keyword
+        #perform sparql query to get all the keywords
+        all_keywords = self.knowledgeGraph.query("""SELECT ?keywords WHERE {
+            <%s> <http://schema.org/keywords> ?keywords .
+        }""" % profile_uri)
+        metadata["keywords"] = []
+        if len(all_keywords) > 1:
+            #iterate over all the keywords
+            for keyworde in all_keywords:
+                metadata["keywords"].append(keyworde.keywords)
+            #get the url of the profile
+            metadata["url"] = profile_uri
+        else:
+            metadata["keywords"] = self.knowledgeGraph.value(profile_uri, URIRef("http://schema.org/keywords"))
+        #log json metadata in pprint format
+        logger.debug(msg="Metadata extracted from profile {0}: \n{1}".format(profile_uri, json.dumps(metadata, indent=4)))
+        return metadata
+    
+    
+    

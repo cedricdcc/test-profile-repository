@@ -16,62 +16,58 @@
         <div class="container rootcontainer">
             <h1>{{ title }}</h1>
             <br/>
+
             <table>
+                {%- for dataseturl,datasetmetadata in datasets.items() -%}
+                {%- if loop.first -%} 
                 <tr>
-                    <th>profile name</th>
-                    <th>version</th>
-                    <th>description</th>
-                    <th>keywords</th>
-                    <th>license</th>
-                    <th>authors</th>
+                    {%- for key,value in datasetmetadata.items() -%}
+                    {% if "url" not in key %}
+                    <th>{{ key }}</th>
+                    {% endif %}
+                    {%- endfor -%}
                 </tr>
-                {% for dataset in datasets %}
-                {% if dataset.metadata.name is none or dataset.metadata.version is none or dataset.metadata.description is none or dataset.metadata.keywords is none or dataset.metadata.license is none or dataset.metadata.author is none %}
-                <tr class="error_row">
-                {% else %}
+                {%- endif -%}
+                {%- endfor -%}
+                {%- for dataseturl,datasetmetadata in datasets.items() -%}
                 <tr>
-                {% endif %}
-                    <td><a href="{{ dataset.URI }}">{{ dataset.metadata.name }}</a></td>
-                    <td>{{ dataset.metadata.version }}</td>
-                    <td>{{ dataset.metadata.description }}</td>
-                    {% if dataset.metadata.keywords is iterable and (dataset.metadata.keywords is not string and dataset.metadata.keywords is not mapping) %}
-                    {% if dataset.metadata.keywords is not none %}
+                    {%- for key,value in datasetmetadata.items() -%}
+                    {% if "url" not in key %}
+                    {% if "name" in key %}
+                    <td><a href="{{ dataseturl }}">{{ value }}</a></td>
+                    {% else %}
+                    {% if value is not none %}
+                    {% if value is iterable and (value is not string and value is not mapping) %}
                     <td>
                         <ul>
-                            {% for keyword in dataset.metadata.keywords %}
-                            <li>{{ keyword }}</li>
-                            {% endfor %}
+                        {%- for item in value -%}
+                        <li>
+                        {% if item is string and item.startswith('http') %}
+                        <a href="{{ item }}">{{ item }}</a>
+                        {% else %}
+                        {{ item }}
+                        {% endif %}
+                        </li>
+                        {%- endfor -%}
                         </ul>
                     </td>
+                    {% else %}
+                    {% if value is string and value.startswith('http') %}
+                    <td><a href="{{ value }}">{{ value }}</a></td>
+                    {% else %}
+                    <td>{{ value }}</td>
+                    {% endif %}
                     {% endif %}
                     {% else %}
-                    <td>{{ dataset.metadata.keywords }}</td>
+                    <td style="color:#d9534f;font-weight:bold;">{{ value }}</td>
                     {% endif %}
-                    {% if dataset.metadata.license is not none %}
-                    {% if 'http' in dataset.metadata.license %}
-                    <td><a href="{{ dataset.metadata.license }}">{{ dataset.metadata.license }}</a></td>
-                    {% else %}
-                    <td>{{ dataset.metadata.license }}</td>
                     {% endif %}
-                    {% else %}
-                    <td>None</td>
-                    {% endif %}
-                    {% if dataset.metadata.author is iterable and (dataset.metadata.author is not string and dataset.metadata.author is not mapping) %}
-                    {% if dataset.metadata.author is not none %}
-                    <td>
-                        <ul>
-                            {% for authore in dataset.metadata.author %}
-                            <li>{{ authore }}</li>
-                            {% endfor %}
-                        </ul>
-                    </td>
-                    {% endif %}
-                    {% else %}
-                    <td>{{ dataset.metadata.author }}</td>
-                    {% endif %}
+                    {%- endif -%}
+                    {%- endfor -%}
                 </tr>
-                {% endfor %}
-            <table/>
+                {%- endfor -%}
+
+            </table>
         </div>
     </body>
     <!-- 
