@@ -19,7 +19,6 @@
             <table>
                 <tr>
                     <th>profile name</th>
-                    <th>Contact</th>
                     <th>version</th>
                     <th>description</th>
                     <th>keywords</th>
@@ -33,7 +32,6 @@
                 <tr>
                 {% endif %}
                     <td><a href="{{ dataset.URI }}">{{ dataset.metadata.name }}</a></td>
-                    <td>{{ dataset.contact }}</td>
                     <td>{{ dataset.metadata.version }}</td>
                     <td>{{ dataset.metadata.description }}</td>
                     {% if dataset.metadata.keywords is iterable and (dataset.metadata.keywords is not string and dataset.metadata.keywords is not mapping) %}

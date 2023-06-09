@@ -1,15 +1,14 @@
 #this file will contain all the functions that will be used to build the registry that will be used to build the gh-pages
 import os
-import sys
-import yaml
 import csv
 import json
 from utils.singleton.location import Location
-from utils.singleton.logger import get_logger
+from utils.singleton.logger import get_logger, get_warnings_log
 from utils.uri_checks import check_uri, check_if_json_return, get_url, check_uri_content
 from utils.jsonld_file import has_conformsTo_prop, get_cornformTo_uris, is_profile, get_profile_prop, get_metadata_profile
 from utils.html_build_util import make_html_file, setup_build_folder
 from utils.rdflib import KnowledgeGraphRegistry
+from utils.contact import Contact
 logger = get_logger()
 
 #registry class that will hold the registry
@@ -40,6 +39,13 @@ class Registry():
                 indent=4
             )
         )
+        
+        #get warning logs and write them to the build folder as warnings.txt
+        logger.info("Writing warnings to build folder")
+        warnings_log = get_warnings_log()
+        with open(os.path.join(Location().get_location(), "build", "warnings.txt"), "w") as f:
+            for warning in warnings_log:
+                f.write(warning)
         return report
     
     def get_registry(self):
@@ -97,7 +103,7 @@ class Registry():
                 with open(csv_file, newline='') as csvfile:
                     reader = csv.DictReader(csvfile)
                     for row in reader:
-                        registry_array.append({"source": csv_file, "URI": row["URI"], "contact": row["contact"]})
+                        registry_array.append({"source": csv_file, "URI": row["URI"], "contact": Contact(row["contact"])})
         except Exception as e:
             logger.error(f"Error while making registry array: {e}")
 
@@ -112,6 +118,13 @@ class Registry():
         logger.info("Making registry")
         
         for entry in self.registry_array:
+            #first check if the contact is valid
+            logger.debug(f"Checking contact {entry['contact'].get_contact()}")
+            if not entry["contact"].result():
+                logger.warning(f"Contact {entry['contact'].get_contact()} is not valid")
+                self.warning_row(entry, reason="Contact is not valid")
+                continue
+            
             logger.info(f"Checking entry {entry}")
             #check if the URI is valid
             #check if the URI is already in the registry
@@ -119,7 +132,7 @@ class Registry():
             for row  in self.to_check_rows:
                 if entry["URI"] == row["URI"]:
                     logger.warning(f"URI {entry['URI']} already in registry")
-                    self.warning_row(entry)
+                    self.warning_row(entry, reason="URI already in registry")
                     warning = True
                     break
             
@@ -127,7 +140,7 @@ class Registry():
                 continue
                 
             if not check_uri(entry["URI"]):
-                self.failed_row(entry)
+                self.failed_row(entry, reason="URI is not valid")
                 continue
             
             var_check_uri_content = check_uri_content(entry["URI"])
@@ -141,13 +154,13 @@ class Registry():
                     if var_check_uri_content.startswith("./"):
                         entry["URI"] = entry["URI"] + var_check_uri_content[1:]
                     else:
-                        logger.error(f"URI {entry['URI']} is not valid")
-                        self.failed_row(entry)
+                        logger.warning(f"URI {entry['URI']} is not valid")
+                        self.failed_row(entry, reason="URI is not valid")
                 self.to_check_rows.append(entry)
                 continue
             
             if not var_check_uri_content:
-                self.failed_row(entry)
+                self.failed_row(entry, reason="URI is not valid")
                 continue
             
             #check if the URI return a valid json-ld
@@ -164,7 +177,7 @@ class Registry():
             elif row["type"] == "crate":
                 row["conformsTo_uris"] = get_cornformTo_uris(get_url(row["URI"]).json())
             else:
-                self.failed_row(row)
+                self.failed_row(row, reason="Type is not profile or crate")
         
         self.remove_checked_rows()
     
@@ -221,7 +234,7 @@ class Registry():
                         if profile_found:
                             self.approved_row(row)
                         else:
-                            self.warning_row(row)
+                            self.warning_row(row, reason="No profile found in conformsTo prop")
                     else:
                         #check if the conformsTo prop contains a profile
                         uri_from_prop = self.get_uri_from_prop(row["conformsTo_uris"])
@@ -231,9 +244,9 @@ class Registry():
                                 row["profile_prop"] = get_profile_prop(get_url(uri_from_prop).json())
                                 self.approved_row(row)
                             else:
-                                self.warning_row(row)
+                                self.warning_row(row, reason="URI is not a profile")
                         else:
-                            self.warning_row(row)
+                            self.warning_row(row, reason="URI is not valid")
                 self.remove_checked_rows()
             except Exception as e:
                 logger.error(f"Error while getting conformsTo uris: {e}")
@@ -267,16 +280,22 @@ class Registry():
     
     def approved_row(self, row):
         logger.debug(f"Approving row {row}")
+        #change the row so that contact => contact.get_contact()
+        row["contact"] = row["contact"].get_contact()
         self.checked_rows.append(row)
         self.profile_registry_array.append(row)
     
-    def warning_row(self, row):
+    def warning_row(self, row, reason):
         logger.debug(f"Warning row {row}")
+        row["contact"] = row["contact"].get_contact()
+        row["reason"] = reason
         self.checked_rows.append(row)
         self.warnings_rows.append(row)
         
-    def failed_row(self, row):
+    def failed_row(self, row, reason):
         logger.debug(f"Failed row {row}")
+        row["contact"] = row["contact"].get_contact()
+        row["reason"] = reason
         self.checked_rows.append(row)
         self.error_rows.append(row)
     
@@ -287,7 +306,7 @@ class Registry():
                 self.to_check_rows.remove(row)
             except Exception as e:
                 logger.debug(f"Error while removing row: {row})")
-                logger.error(f"Error while removing checked rows: {e}")
+                #logger.error(f"Error while removing checked rows: {e}")
                 continue
     
     def get_metadata_profiles(self):
@@ -318,7 +337,4 @@ class Registry():
         except Exception as e:
             logger.error(f"Error while making html file: {e}")
             logger.exception(e)
-            return False
-        
-            
-        
+            return False      
