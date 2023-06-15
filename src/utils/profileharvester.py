@@ -134,13 +134,15 @@ class ProfileHarvester():
         insert the metadata into the graph
         '''
         if self.entry_uri_type == "application/json" or self.entry_uri_type == "application/ld+json":
-            self.kg.parse(data=self.entry_uri_content, format="json-ld")
+            self.kg.parse(data=self.entry_uri_content, format="json-ld", base=self.entry_uri)
         elif self.entry_uri_type == "application/rdf+xml":
-            self.kg.parse(data=self.entry_uri_content, format="xml")
+            self.kg.parse(data=self.entry_uri_content, format="xml", base=self.entry_uri)
         elif self.entry_uri_type == "application/rdf+json":
-            self.kg.parse(data=self.entry_uri_content, format="json-ld")
+            self.kg.parse(data=self.entry_uri_content, format="json-ld", base=self.entry_uri)
         elif self.entry_uri_type == "text/turtle":
-            self.kg.parse(data=self.entry_uri_content, format="turtle")
+            #decode the self.entry_uri_content to utf-8
+            #entry_uri = self.entry_uri.decode("utf-8")
+            self.kg.parse(self.entry_uri, format="turtle") #got an error here when using the base parameter
     
     def get_kg(self):
         #serialize the graph to ttl and return it
@@ -148,7 +150,7 @@ class ProfileHarvester():
     
     def extract_type_from_kg(self):
         '''
-        extract the type of kg we ae dealing with.
+        extract the type of kg we are dealing with.
         This can be either a rocrate, profile or registry.
         We do this by looking for specific triples in the graph.
         '''    
@@ -176,11 +178,13 @@ class ProfileHarvester():
             # [] schema:hasPart ?candidate .
         }
         '''
-        
         query = '''
         prefix prof: <http://www.w3.org/ns/dx/prof/>
         select ?profile where { ?profile a prof:Profile . }
         '''
+        #before doing the queries change the kg to have the entry_uri as base_uri instead of the file uri
+        self.kg
+        
         results = self.kg.query(query)
         if len(results) > 0:
             self.type = "profile"
