@@ -1,0 +1,2 @@
+prefix prof: <http://www.w3.org/ns/dx/prof/>
+select ?profile where { ?profile a prof:Profile . }

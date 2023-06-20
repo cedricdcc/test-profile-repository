@@ -4,10 +4,11 @@
 # first thing is to check the given config file and load it
 # based on config file, it will make the necessary calls to other files and make folders for the output files
 import os
+from pathlib import Path
 import sys
 from utils.singleton.location import Location
 from utils.singleton.logger import get_logger
-from utils.build_registry import Registry
+from utils.registry import Registry
 
 Location(root=os.path.dirname(os.path.abspath(__file__)))
 logger = get_logger()
@@ -18,6 +19,9 @@ if not os.path.isdir("data"):
     sys.exit(1)
 
 logger.info("Start of gh-pages build")
-registry = Registry()
-registry.build_registry(data_path=os.path.join(Location().get_location(), "data"))
-registry.get_report()
+
+data_path = Path(Location().get_location()) / "data"
+
+registry = Registry(data_path=data_path)
+registry.build()
+registry.report()

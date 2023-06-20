@@ -13,39 +13,44 @@ from utils.singleton.location import Location
 logger = get_logger()
 class KnowledgeGraphRegistry():
     
-    def __init__(self, knowledgeGraph):
+    def __init__(self, base, knowledgeGraph=None):
         logger.info(msg="Initializing Knowledge Graph Registry")
-        
-        
-        
-        if knowledgeGraph is None:
-            self.knowledgeGraph = Graph()
-            #bind the schema namespace to the prefix schema
-            #add triple that states that the current uri ./ is a schema:CreativeWork
-            self.knowledgeGraph.add((URIRef("./"), RDF.type, URIRef("http://schema.org/CreativeWork")))
-            #add triple that is a blank node named "listregistry" that is part of the registry hasPart
-            self.knowledgeGraph.add((URIRef("./"), URIRef("http://schema.org/hasPart"), BNode("listregistry")))    
-            #define listregistry as a schema:ItemList
-            self.knowledgeGraph.add((BNode("listregistry"), RDF.type, URIRef("http://schema.org/ItemList")))
-            #define the name of the listregistry as "registry of all profiles "
-            self.knowledgeGraph.add((BNode("listregistry"), URIRef("http://schema.org/name"), Literal("registry of all profiles")))
-            #define that listregistry is schema part of the current uri
-            self.knowledgeGraph.add((BNode("listregistry"), URIRef("http://schema.org/isPartOf"), URIRef("./")))
-        else:
+        self._base = base
+        if knowledgeGraph is not None:
             self.knowledgeGraph = knowledgeGraph
+            return 
+        # else
+        self.knowledgeGraph = Graph()
+        #bind the schema namespace to the prefix schema
+        #add triple that states that the current uri ./ is a schema:CreativeWork
+        self.knowledgeGraph.add((URIRef("./"), RDF.type, URIRef("http://schema.org/CreativeWork")))
+        #add triple that is a blank node named "listregistry" that is part of the registry hasPart
+        self.knowledgeGraph.add((URIRef("./"), URIRef("http://schema.org/hasPart"), BNode("listregistry")))    
+        #define listregistry as a schema:ItemList
+        self.knowledgeGraph.add((BNode("listregistry"), RDF.type, URIRef("http://schema.org/ItemList")))
+        #define the name of the listregistry as "registry of all profiles "
+        self.knowledgeGraph.add((BNode("listregistry"), URIRef("http://schema.org/name"), Literal("registry of all profiles")))
+        #define that listregistry is schema part of the current uri
+        self.knowledgeGraph.add((BNode("listregistry"), URIRef("http://schema.org/isPartOf"), URIRef("./")))
+            
+            
+    def write(self, file_name, format="turtle"):
+        logger.info(msg="Writing Knowledge Graph Registry to file {0}".format(file_name))
+        self.knowledgeGraph.bind("schema", "http://schema.org/", override=True, replace=True)
+        destinaton = os.path.join(Location().get_location(), "build",file_name)
+        self.knowledgeGraph.serialize(destination=destinaton, format=format, base=self._base)
             
     def addJson(self, json):
         self.knowledgeGraph.parse(data=json, format="json-ld")
     
     def toTurtle(self):
-        self.knowledgeGraph.bind("schema", "http://schema.org/", override=True, replace=True)
-        return self.knowledgeGraph.serialize(format="turtle")
+        return self.write(file_name="registry.ttl", format="turtle")
     
     def toJson(self):
-        return self.knowledgeGraph.serialize(format="json-ld")
+        return self.write(file_name="registry.json", format="json-ld")
     
     def toRdf(self):
-        return self.knowledgeGraph.serialize(format="xml")
+        return self.write(file_name="registry.rdf", format="xml")
     
     def addProfile(self, profile_uri):
         logger.info(msg="Adding profile to the registry {0}".format(profile_uri))
