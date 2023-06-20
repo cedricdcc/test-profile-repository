@@ -16,15 +16,14 @@
         <div class="container rootcontainer">
             <h1>{{ title }}</h1>
             <br/>
-
             <table>
-                {%- for dataseturl,datasetmetadata in datasets.items() -%}
-                {%- if loop.first -%} 
+                {%- for dataseturl,datasetmetadata in datasets.items() %}
+                {%- if loop.first %} 
                 <tr>
-                    {%- for key,value in datasetmetadata.items() -%}
-                    {% if "url" not in key %}
+                    {%- for key,value in datasetmetadata.items() %}
+                    {%- if "url" not in key %}
                     <th>{{ key }}</th>
-                    {% endif %}
+                    {%- endif %}
                     {%- endfor -%}
                 </tr>
                 {%- endif -%}
@@ -32,41 +31,40 @@
                 {%- for dataseturl,datasetmetadata in datasets.items() -%}
                 <tr>
                     {%- for key,value in datasetmetadata.items() -%}
-                    {% if "url" not in key %}
-                    {% if "name" in key %}
+                    {%- if "url" not in key %}
+                    {%- if "name" in key %}
                     <td><a href="{{ dataseturl }}">{{ value }}</a></td>
-                    {% else %}
-                    {% if value is not none %}
-                    {% if value is iterable and (value is not string and value is not mapping) %}
+                    {%- else %}
+                    {%- if value is not none %}
+                    {%- if value is iterable and (value is not string and value is not mapping) %}
                     <td>
                         <ul>
                         {%- for item in value -%}
                         <li>
-                        {% if item is string and item.startswith('http') %}
+                        {%- if item is string and item.startswith('http') %}
                         <a href="{{ item }}">{{ item }}</a>
-                        {% else %}
+                        {%- else %}
                         {{ item }}
-                        {% endif %}
+                        {%- endif %}
                         </li>
                         {%- endfor -%}
                         </ul>
                     </td>
-                    {% else %}
-                    {% if value is string and value.startswith('http') %}
+                    {%- else %}
+                    {%- if value is string and value.startswith('http') %}
                     <td><a href="{{ value }}">{{ value }}</a></td>
-                    {% else %}
+                    {%- else %}
                     <td>{{ value }}</td>
-                    {% endif %}
-                    {% endif %}
-                    {% else %}
+                    {%- endif %}
+                    {%- endif %}
+                    {%- else %}
                     <td style="color:#d9534f;font-weight:bold;">{{ value }}</td>
-                    {% endif %}
-                    {% endif %}
+                    {%- endif %}
+                    {%- endif %}
                     {%- endif -%}
                     {%- endfor -%}
                 </tr>
-                {%- endfor -%}
-
+                {%- endfor %}
             </table>
         </div>
     </body>
