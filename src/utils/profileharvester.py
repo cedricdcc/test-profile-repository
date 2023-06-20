@@ -22,9 +22,7 @@ class ProfileHarvester():
         self.profiles = set() #set of profiles harvested from entry_uri
         self.kg = rdflib.Graph()
         self.children = []
-        
-       
-        
+         
     def harvest(self):
         '''
         this function will harvest the metadata from the uri provided
@@ -146,6 +144,7 @@ class ProfileHarvester():
     
     def get_kg(self):
         #serialize the graph to ttl and return it
+        self.getCompleteKG()
         return self.kg.serialize(format="turtle")
     
     def extract_type_from_kg(self):
@@ -214,9 +213,50 @@ class ProfileHarvester():
                 self.children.append(child_profile_harvester)
                 child_profile_harvester.harvest()
                 
-   
     def getProfiles(self):
         # build profiles , possibly by delegates
+        #check if we have children
+        if len(self.children) > 0:
+            for child in self.children:
+                self.profiles = self.profiles.union(child.getProfiles())
         return self.profiles 
     
-
+    def getCompleteKG(self):
+        # build profiles , possibly by delegates
+        #check if we have children
+        if len(self.children) > 0:
+            for child in self.children:
+                try:
+                    self.kg = self.kg + child.getCompleteKG()
+                except Exception as e:
+                    logger.error(msg="Error getting complete KG from child {0} : {1}".format(child, str(e)))
+        return self.kg
+    
+    def getListDictsProfiles(self):
+        #first get the complete kg
+        c_kg = self.getCompleteKG()
+        #run query that will extract the triples that we need , check for each of the triples if they exist if not return empty string
+        query = '''
+        prefix prof: <http://www.w3.org/ns/dx/prof/>
+        prefix schema: <http://schema.org/>
+        select ?profile ?name ?description ?version ?keywords ?license where {
+            ?profile a prof:Profile .
+            OPTIONAL { ?profile schema:name ?name . }
+            OPTIONAL { ?profile schema:description ?description . }
+            OPTIONAL { ?profile schema:version ?version . }
+            OPTIONAL { ?profile schema:keywords ?keywords . }
+            OPTIONAL { ?profile schema:license ?license . }
+        }    
+        '''
+        results = c_kg.query(query)
+        toreturn = {}
+        for result in results:
+            p_dict = {}
+            uri = result[0]
+            p_dict["name"] = result[1]
+            p_dict["description"] = result[2]
+            p_dict["version"] = result[3]
+            p_dict["keywords"] = result[4]
+            p_dict["license"] = result[5]
+            toreturn[uri] = p_dict
+        return toreturn

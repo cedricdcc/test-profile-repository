@@ -2,6 +2,7 @@
 import os
 import csv
 import json
+import rdflib
 from utils.singleton.location import Location
 from utils.singleton.logger import get_logger, get_warnings_log
 from utils.uri_checks import check_uri, check_if_json_return, get_url, check_uri_content
@@ -64,6 +65,7 @@ class Registry():
         :param data_path: the path to the data folder
         :return: the registry
         '''
+        
         logger.info("Building registry")
         #function here to detect all the csv files in the data_path including subfolders
         self.csv_files = self.detect_csv_files()
@@ -98,13 +100,21 @@ class Registry():
         This function will make a harvestor class for each entry in the registry_array.
         '''
         logger.info("Making harvestors")
+        self.profile_metadate_dicts = {}
         for entry in self.to_check_rows:
             logger.info(f"Making harvestor for {entry['URI']}")
             entry_harvestor = ProfileHarvester(entry["URI"])
             entry_harvestor.harvest()
             entry["harvestor"] = entry_harvestor
             logger.debug(entry_harvestor.get_kg())
-            
+            logger.info(f"Harvestor for {entry['URI']} has run")
+            logger.info(f"Harvester has found {len(entry_harvestor.getProfiles())} profiles")
+            logger.debug(entry_harvestor.getCompleteKG().serialize(format = "turtle", base=entry['URI'], encoding="utf-8").decode("utf-8"))
+            logger.info(f"Harvestor for {entry['URI']} has run")
+            harvested_info = entry_harvestor.getListDictsProfiles()
+            #ppritn the harvested info
+            logger.info(json.dumps(harvested_info, indent=4))
+            self.profile_metadate_dicts.update(harvested_info)
     
     def make_entries_array(self):
         '''
@@ -168,12 +178,14 @@ class Registry():
     
     def make_html_file_registry(self):
         logger.info("Making html file")
+        
+        
         try:
             kwargs = {
                 "title": "Test Profile registry",
                 "description": "This is a test profile registry",
                 "theme": "main",
-                "datasets": self.registry_json_format
+                "datasets": self.profile_metadate_dicts
             }
             html_file = make_html_file("index_registry.html",**kwargs)
             #write the html file to the build folder
